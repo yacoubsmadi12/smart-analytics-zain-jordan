@@ -4,7 +4,11 @@ import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
+import "./design-tokens.css";
 import "./index.css";
+import "./components/analytics.css";
+import "./electric-blue-theme.css";
+import "./zain-brand-theme.css";
 
 const queryClient = new QueryClient();
 

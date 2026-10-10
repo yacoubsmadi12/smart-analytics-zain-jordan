@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const dbMocks = vi.hoisted(() => ({ ensureLocalAdmin: vi.fn(), getUserByUsername: vi.fn(), verifyLocalPassword: vi.fn(), createAiConversation: vi.fn(), listAiConversations: vi.fn() }));
+const dbMocks = vi.hoisted(() => ({ ensureLocalAdmin: vi.fn(), getUserByUsername: vi.fn(), verifyLocalPassword: vi.fn(), writeAuditEvent: vi.fn().mockResolvedValue(undefined), createAiConversation: vi.fn(), listAiConversations: vi.fn() }));
 const sdkMocks = vi.hoisted(() => ({ signSession: vi.fn() }));
 vi.mock("./db", () => dbMocks);
 vi.mock("./_core/sdk", () => ({ sdk: sdkMocks }));

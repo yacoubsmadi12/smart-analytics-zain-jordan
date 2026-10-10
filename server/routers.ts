@@ -24,6 +24,7 @@ import {
   getPersistedBusinessRevenueOperations,
   getPersistedPrioritiesOperations,
   listAuditLogs,
+  writeAuditEvent,
   getUserByUsername,
   listAiConversations,
   listDataSources,
@@ -42,6 +43,7 @@ import { sdk } from "./_core/sdk";
 import { ENV } from "./_core/env";
 import { createOperationalAlerts, createReport, type ReportKind } from "./platform-operations";
 import { getDataMode, setDataMode, type DataMode } from "./data-mode";
+import { updateSystemConfig } from "./system-config";
 
 let systemSettings = { networkImpact: 45, customerImpact: 25, revenueImpact: 30, language: "English", timezone: "Asia/Amman", dataRefreshMinutes: 15, theme: "dark" };
 const alertState = new Map<string, { status: "open" | "acknowledged" | "resolved"; assignee: string | null; updatedAt: string }>();
@@ -103,24 +105,18 @@ export const appRouter = router({
         const account = await getUserByUsername(
           input.username.trim().toLowerCase()
         );
-        if (account?.isActive === false)
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "This account is disabled. Contact an administrator.",
-          });
-        if (account?.temporaryPasswordExpiresAt && account.temporaryPasswordExpiresAt.getTime() <= Date.now())
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "This temporary password has expired. Ask an administrator to reset it.",
-          });
-        if (
-          !account ||
-          !verifyLocalPassword(input.password, account.passwordHash)
-        )
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Invalid username or password",
-          });
+        if (account?.isActive === false) {
+          await writeAuditEvent({ userId: account.id, action: "auth.login.failed", resource: "session", result: "failure", ipAddress: ctx.req.ip, isDemo: getDataMode() === "demo" });
+          throw new TRPCError({ code: "FORBIDDEN", message: "This account is disabled. Contact an administrator." });
+        }
+        if (account?.temporaryPasswordExpiresAt && account.temporaryPasswordExpiresAt.getTime() <= Date.now()) {
+          await writeAuditEvent({ userId: account.id, action: "auth.login.failed", resource: "session", result: "failure", ipAddress: ctx.req.ip, isDemo: getDataMode() === "demo" });
+          throw new TRPCError({ code: "FORBIDDEN", message: "This temporary password has expired. Ask an administrator to reset it." });
+        }
+        if (!account || !verifyLocalPassword(input.password, account.passwordHash)) {
+          await writeAuditEvent({ userId: account?.id ?? null, action: "auth.login.failed", resource: "session", result: "failure", ipAddress: ctx.req.ip, isDemo: getDataMode() === "demo" });
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid username or password" });
+        }
         const token = await sdk.signSession({
           openId: account.openId,
           appId: ENV.appId,
@@ -131,6 +127,7 @@ export const appRouter = router({
           ...cookieOptions,
           maxAge: 1000 * 60 * 60 * 12,
         });
+        await writeAuditEvent({ userId: account.id, action: "auth.login", resource: "session", after: { role: account.role }, ipAddress: ctx.req.ip, isDemo: getDataMode() === "demo" });
         return {
           success: true,
           user: { name: account.name, role: account.role },
@@ -146,9 +143,10 @@ export const appRouter = router({
     updateProfile: protectedProcedure
       .input(z.object({ name: z.string().trim().min(1).max(120), email: z.string().trim().email().nullable().optional() }))
       .mutation(async ({ ctx, input }) => updateCurrentUserProfile({ userId: ctx.user.id, name: input.name, email: input.email })),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      await writeAuditEvent({ userId: ctx.user?.id ?? null, action: "auth.logout", resource: "session", ipAddress: ctx.req.ip, isDemo: getDataMode() === "demo" });
       return { success: true } as const;
     }),
   }),
@@ -217,7 +215,7 @@ export const appRouter = router({
   }),
   settings: router({
     get: protectedProcedure.query(({ ctx }) => { adminOnly(ctx.user); return systemSettings; }),
-    update: protectedProcedure.input(z.object({ networkImpact: z.number().min(0).max(100), customerImpact: z.number().min(0).max(100), revenueImpact: z.number().min(0).max(100), dataRefreshMinutes: z.number().int().min(1).max(1440), timezone: z.string().min(1).max(80), theme: z.enum(["dark", "light"]).default("dark"), language: z.enum(["English", "Arabic"]).default("English") })).mutation(({ ctx, input }) => { adminOnly(ctx.user); if (input.networkImpact + input.customerImpact + input.revenueImpact !== 100) throw new TRPCError({ code: "BAD_REQUEST", message: "Priority weights must total exactly 100%." }); systemSettings = { ...systemSettings, ...input }; return systemSettings; }),
+    update: protectedProcedure.input(z.object({ networkImpact: z.number().min(0).max(100), customerImpact: z.number().min(0).max(100), revenueImpact: z.number().min(0).max(100), dataRefreshMinutes: z.number().int().min(1).max(1440), timezone: z.string().min(1).max(80), theme: z.enum(["dark", "light"]).default("dark"), language: z.enum(["English", "Arabic"]).default("English") })).mutation(async ({ ctx, input }) => { adminOnly(ctx.user); if (input.networkImpact + input.customerImpact + input.revenueImpact !== 100) throw new TRPCError({ code: "BAD_REQUEST", message: "Priority weights must total exactly 100%." }); const before = systemSettings; systemSettings = { ...systemSettings, ...input }; updateSystemConfig({ priorityWeights: { network: input.networkImpact / 100, customer: input.customerImpact / 100, revenue: input.revenueImpact / 100 }, refreshIntervalSeconds: input.dataRefreshMinutes * 60, timezone: input.timezone, language: input.language === "Arabic" ? "ar" : "en" }); await writeAuditEvent({ userId: ctx.user.id, action: "settings.update", resource: "systemSettings", before, after: systemSettings, ipAddress: ctx.req.ip, isDemo: getDataMode() === "demo" }); return systemSettings; }),
   }),
   audit: router({
     list: protectedProcedure.query(({ ctx }) => { adminOnly(ctx.user); return listAuditLogs(); }),

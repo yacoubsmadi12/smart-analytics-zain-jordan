@@ -40,15 +40,11 @@ import {
   type SalesOperations,
   type SalesOpportunityInput,
 } from "./sales-analytics";
+import { calculateMetrics, getDemoDataset, JORDAN_GOVERNORATES } from "./metrics-service";
+import { getSystemConfig } from "./system-config";
 
 export const SYNTHETIC_TOWER_COUNT = 5_250;
-export const SYNTHETIC_REGION_NAMES = [
-  "Amman",
-  "Irbid",
-  "Zarqa",
-  "Aqaba",
-  "Mafraq",
-] as const;
+export const SYNTHETIC_REGION_NAMES = JORDAN_GOVERNORATES.map(region => region.name);
 export const SYNTHETIC_UPDATED_AT = "2026-08-26T08:00:00.000Z";
 
 const profiles = [
@@ -103,19 +99,18 @@ function towerCode(index: number) {
   return `SYN-${String(index + 1).padStart(5, "0")}`;
 }
 function towerName(index: number) {
-  return `Synthetic Tower ${String(index + 1).padStart(5, "0")}`;
+  const site = getDemoDataset().sites[index % getDemoDataset().sites.length];
+  return `${site?.name ?? "Jordan site"} · Synthetic Tower ${String(index + 1).padStart(5, "0")}`;
 }
 function coordinate(index: number) {
-  return {
-    latitude: Number((31.15 + ((index * 0.0137) % 3.2)).toFixed(6)),
-    longitude: Number((35.55 + ((index * 0.0191) % 3.1)).toFixed(6)),
-  };
+  const site = getDemoDataset().sites[index % getDemoDataset().sites.length];
+  return { latitude: site?.latitude ?? 31.9539, longitude: site?.longitude ?? 35.9106 };
 }
 function regionIndex(index: number) {
   return index % SYNTHETIC_REGION_NAMES.length;
 }
 function profileFor(index: number) {
-  return profiles[regionIndex(index)];
+  return profiles[regionIndex(index) % profiles.length];
 }
 function variation(index: number, modulus: number, offset = 0) {
   return ((index * 17 + offset) % modulus) - Math.floor(modulus / 2);
@@ -124,6 +119,7 @@ function variation(index: number, modulus: number, offset = 0) {
 type SyntheticMapSite = {
   id: string;
   name: string;
+  region: string;
   lat: number;
   lng: number;
   status: "healthy" | "warning" | "critical";
@@ -172,6 +168,7 @@ export function syntheticMapSites(
     return {
       id: towerCode(index),
       name: towerName(index),
+      region: SYNTHETIC_REGION_NAMES[regionIndex(index)],
       lat: coordinatePair.latitude,
       lng: coordinatePair.longitude,
       status: networkStatus(availability, congestion),
@@ -267,6 +264,7 @@ export function buildSyntheticNetworkOperations(
     cells,
     SYNTHETIC_UPDATED_AT
   );
+  result.summary.availability = calculateMetrics().networkHealthPct;
   result.trends = [
     { label: "06:00", availability: 97.8, congestion: 61.2, throughput: 35.4 },
     { label: "08:00", availability: 97.2, congestion: 66.8, throughput: 33.1 },
@@ -281,16 +279,17 @@ export function buildSyntheticNetworkOperations(
 }
 
 export function buildSyntheticCustomerExperience(): CustomerExperienceOperations {
-  const inputs = SYNTHETIC_REGION_NAMES.map((region, index) => {
-    const profile = profiles[index];
+  const dataset = getDemoDataset();
+  const inputs = dataset.regions.map((region, index) => {
+    const profile = profileFor(index);
     return {
       id: `SYN-CX-${index + 1}`,
-      name: `${region} service area`,
-      region,
-      customers: 19_000 + index * 1_250,
-      complaints: 920 + index * 115,
-      churnRisk: profile.churn,
-      availability: profile.availability,
+      name: `${region.governorate} service area`,
+      region: region.governorate,
+      customers: region.customers,
+      complaints: region.complaintsOpen,
+      churnRisk: region.churnRiskPct,
+      availability: region.networkHealthPct,
       congestion: profile.congestion,
       throughput: profile.throughput,
       fiber: profile.fiber,
@@ -301,25 +300,27 @@ export function buildSyntheticCustomerExperience(): CustomerExperienceOperations
 }
 
 export function buildSyntheticCustomers(): CustomerOperations {
-  const inputs = SYNTHETIC_REGION_NAMES.map((region, index) => {
-    const profile = profiles[index];
-    const customers = 22_000 + index * 1_250;
+  const dataset = getDemoDataset();
+  const inputs = dataset.regions.map((region, index) => {
+    const customers = region.customers;
+    const regionSites = dataset.sites.filter(site => site.governorate === region.governorate);
+    const center = regionSites[0] ?? dataset.sites[index];
     return {
-      id: `SYN-${String(index + 1).padStart(5, "0")}`,
-      name: `${region} customer base`,
-      region,
+      id: `JO-CUSTOMERS-${String(index + 1).padStart(3, "0")}`,
+      name: `${region.governorate} customer base`,
+      region: region.governorate,
       customers,
       enterpriseCustomers: Math.round(customers * 0.08),
       smeCustomers: Math.round(customers * 0.22),
       highValueCustomers: Math.round(customers * 0.16),
-      highChurnCustomers: Math.round(customers * (0.035 + index * 0.006)),
-      churnRisk: profile.churn,
-      density: 420 + index * 85,
-      latitude: coordinate(index * 911).latitude,
-      longitude: coordinate(index * 911).longitude,
-      congestedCells: profile.congestion >= 70 ? 3 : 1,
-      nearestCongestedCellKm: profile.congestion >= 70 ? 0.6 : 1.4,
-      complaints: 920 + index * 115,
+      highChurnCustomers: Math.round(customers * region.churnRiskPct / 100),
+      churnRisk: region.churnRiskPct,
+      density: 380 + index * 61,
+      latitude: center?.latitude ?? coordinate(index).latitude,
+      longitude: center?.longitude ?? coordinate(index).longitude,
+      congestedCells: regionSites.filter(site => site.congestionPct >= 85).length,
+      nearestCongestedCellKm: regionSites.some(site => site.congestionPct >= 85) ? 0.6 : 1.4,
+      complaints: region.complaintsOpen,
       source: "synthetic",
     };
   });
@@ -327,38 +328,32 @@ export function buildSyntheticCustomers(): CustomerOperations {
 }
 
 export function buildSyntheticComplaints(): ComplaintOperations {
-  const categories = ["Internet Slow", "Coverage Gap", "Call Drop"];
-  const records: ComplaintRecord[] = SYNTHETIC_REGION_NAMES.flatMap(
-    (region, regionIndex) =>
-      categories.map((category, categoryIndex) => {
-        const count = 480 + regionIndex * 70 + categoryIndex * 45;
-        const towerIndex = regionIndex * 5;
-        return {
-          id: `SYN-C-${regionIndex + 1}-${categoryIndex + 1}`,
-          category,
-          severity:
-            categoryIndex === 0 && regionIndex % 2 === 0
-              ? "critical"
-              : categoryIndex === 1
-                ? "high"
-                : "medium",
-          status: categoryIndex === 2 ? "in_progress" : "open",
-          count,
-          region,
-          siteId: towerCode(towerIndex),
-          latitude: coordinate(towerIndex).latitude,
-          longitude: coordinate(towerIndex).longitude,
-          networkRelated: true,
-          coveredWorstCellCount: Math.round(count * 0.72),
-          worstCellCodes: [
-            `${towerCode(towerIndex)}-4G-01`,
-            `${towerCode(towerIndex)}-4G-02`,
-            `${towerCode(towerIndex)}-5G-01`,
-          ],
-          growthPct: 18 + regionIndex * 4 + categoryIndex * 3,
-        } satisfies ComplaintRecord;
-      })
-  );
+  const dataset = getDemoDataset();
+  const records: ComplaintRecord[] = dataset.regions.flatMap((region, regionIndex) => {
+    const siteIndex = dataset.sites.findIndex(site => site.governorate === region.governorate);
+    const towerIndex = Math.max(0, siteIndex);
+    const categories = [
+      { name: "Mobile data performance", count: Math.round(region.complaintsOpen * 0.4), status: "open" as const, severity: "high" as const },
+      { name: "Coverage and signal", count: Math.round(region.complaintsOpen * 0.35), status: "in_progress" as const, severity: regionIndex % 4 === 0 ? "critical" as const : "high" as const },
+      { name: "Voice call quality", count: region.complaintsOpen - Math.round(region.complaintsOpen * 0.4) - Math.round(region.complaintsOpen * 0.35), status: "open" as const, severity: "medium" as const },
+      { name: "Resolved service cases", count: region.complaintsTotal - region.complaintsOpen, status: "resolved" as const, severity: "low" as const },
+    ];
+    return categories.map((category, categoryIndex) => ({
+      id: `JO-C-${String(regionIndex + 1).padStart(2, "0")}-${categoryIndex + 1}`,
+      category: category.name,
+      severity: category.severity,
+      status: category.status,
+      count: category.count,
+      region: region.governorate,
+      siteId: towerCode(towerIndex),
+      latitude: coordinate(towerIndex).latitude,
+      longitude: coordinate(towerIndex).longitude,
+      networkRelated: categoryIndex !== 3,
+      coveredWorstCellCount: Math.round(category.count * 0.68),
+      worstCellCodes: [`${towerCode(towerIndex)}-4G-01`, `${towerCode(towerIndex)}-5G-01`],
+      growthPct: 7 + regionIndex * 1.3 + categoryIndex * 2.1,
+    } satisfies ComplaintRecord));
+  });
   return assembleComplaintOperations(
     "synthetic",
     records,
@@ -407,35 +402,31 @@ export function buildSyntheticInfrastructure(): InfrastructureOperations {
 
 export function buildSyntheticSales(): SalesOperations {
   const stages = ["Qualified", "Proposal", "Negotiation", "Closed Won"];
-  const inputs: SalesOpportunityInput[] = Array.from(
-    { length: 840 },
-    (_, index) => {
-      const regionIndexValue = regionIndex(index);
+  const dataset = getDemoDataset();
+  const inputs: SalesOpportunityInput[] = dataset.regions.map((region, index) => {
       const profile = profileFor(index);
-      const towerIndex = index % SYNTHETIC_TOWER_COUNT;
-      const value =
-        85_000 + (index % 9) * 38_000 + (regionIndexValue === 0 ? 75_000 : 0);
+      const towerIndex = dataset.sites.findIndex(site => site.governorate === region.governorate);
+      const value = region.weightedPipelineJod;
       return {
-        id: `SYN-O-${String(index + 1).padStart(5, "0")}`,
-        accountName: `Synthetic Account ${String(index + 1).padStart(4, "0")}`,
-        region: SYNTHETIC_REGION_NAMES[regionIndexValue],
+        id: `JO-O-${String(index + 1).padStart(3, "0")}`,
+        accountName: `${region.governorate} ${index % 2 ? "Enterprise Connectivity" : "Regional Network Modernisation"}`,
+        region: region.governorate,
         latitude: coordinate(towerIndex).latitude,
         longitude: coordinate(towerIndex).longitude,
-        stage: stages[index % stages.length],
+        stage: stages[index % 3],
         value,
-        probability: 35 + (index % 6) * 10,
-        enterprise: index % 4 === 0,
+        probability: 100,
+        enterprise: index % 3 !== 0,
         customerSegment: (index % 4 === 0
           ? "enterprise"
           : index % 3 === 0
             ? "high_value"
             : "consumer") as SalesOpportunityInput["customerSegment"],
-        networkReadiness: Math.max(35, 100 - profile.congestion),
+        networkReadiness: region.networkHealthPct,
         fiberReadiness: profile.fiber,
         siteName: towerName(towerIndex),
       };
-    }
-  );
+    });
   return assembleSalesOperations("synthetic", inputs, SYNTHETIC_UPDATED_AT);
 }
 
@@ -473,7 +464,7 @@ export function buildSyntheticMarketing(): MarketingOperations {
         status: index % 4 === 0 ? "Planned" : "Active",
         budget: 55_000 + index * 12_500,
         conversionRate: Number((4.8 + (index % 5) * 1.2).toFixed(1)),
-        targetArea: targetAreas[regionIndexValue],
+        targetArea: targetAreas[regionIndexValue % targetAreas.length],
         marketPotential: 48 + ((index * 7) % 39),
         fiveGPotential: 62 + (index % 4) * 8,
         customerSegment: (index % 4 === 0
@@ -492,26 +483,23 @@ export function buildSyntheticMarketing(): MarketingOperations {
 }
 
 export function buildSyntheticBusinessRevenue(): BusinessRevenueOperations {
-  const inputs = SYNTHETIC_REGION_NAMES.map((region, index) => {
-    const profile = profiles[index];
-    const revenueAtRisk = 240_000 + index * 62_000;
+  const metrics = calculateMetrics();
+  const inputs = metrics.regions.map((region, index) => {
+    const networkIssue = region.networkHealthPct < 97 || region.churnRiskPct >= 7;
     return {
       id: `SYN-R-${index + 1}`,
-      region,
+      region: region.governorate,
       period: "2026-08",
-      revenueAtRisk,
-      customersAtRisk: 2_400 + index * 430,
-      enterpriseImpact: 180 + index * 34,
-      salesPipeline: 420_000 + index * 55_000,
-      revenueOpportunity: 160_000 + index * 28_000,
-      investmentOpportunity: 95_000 + index * 22_000,
-      networkHealth: Math.max(0, 100 - profile.congestion),
-      networkIssue: profile.congestion >= 70,
-      action:
-        profile.congestion >= 70
-          ? "Capacity and fiber remediation"
-          : "Protect and grow",
-      status: profile.congestion >= 70 ? "Urgent" : "Opportunity",
+      revenueAtRisk: region.revenueAtRiskJod,
+      customersAtRisk: Math.round(region.customers * region.churnRiskPct / 100),
+      enterpriseImpact: Math.round(region.customers * 0.08),
+      salesPipeline: region.weightedPipelineJod,
+      revenueOpportunity: Math.round(region.weightedPipelineJod * 0.12),
+      investmentOpportunity: Math.round(region.revenueAtRiskJod * 0.08),
+      networkHealth: region.networkHealthPct,
+      networkIssue,
+      action: networkIssue ? "Capacity and fiber remediation" : "Protect and grow",
+      status: networkIssue ? "Review required" : "Opportunity",
     };
   });
   return assembleBusinessRevenueOperations(
@@ -523,7 +511,7 @@ export function buildSyntheticBusinessRevenue(): BusinessRevenueOperations {
 
 export function buildSyntheticPriorities(): PrioritiesOperations {
   const inputs = SYNTHETIC_REGION_NAMES.flatMap((region, index) => {
-    const profile = profiles[index];
+    const profile = profileFor(index);
     const affectedCustomers = 3_800 + index * 620;
     const revenueRisk = 240_000 + index * 62_000;
     return [
@@ -563,21 +551,22 @@ export function buildSyntheticPriorities(): PrioritiesOperations {
   return assemblePrioritiesOperations(
     "synthetic",
     inputs,
-    SYNTHETIC_UPDATED_AT
+    SYNTHETIC_UPDATED_AT,
+    getSystemConfig()
   );
 }
 
 export function buildSyntheticDashboardSummary() {
-  const network = buildSyntheticNetworkOperations();
+  const metrics = calculateMetrics();
   return {
-    networkHealth: network.summary.availability,
-    sites: SYNTHETIC_TOWER_COUNT,
-    customers: 126_000,
-    openComplaints: 8_400,
-    cxRisk: 62.4,
-    revenueAtRisk: 1_510_000,
+    networkHealth: metrics.networkHealthPct,
+    sites: metrics.sites,
+    customers: metrics.customers,
+    openComplaints: metrics.complaintsOpen,
+    cxRisk: metrics.regions.reduce((sum, region) => sum + region.churnRiskPct, 0) / metrics.regions.length,
+    revenueAtRisk: metrics.revenueAtRiskJod,
     updatedMinutesAgo: 0,
-    updatedAt: SYNTHETIC_UPDATED_AT,
+    updatedAt: metrics.updatedAt,
     trend: {
       period: "7d",
       networkHealth: 1.8,

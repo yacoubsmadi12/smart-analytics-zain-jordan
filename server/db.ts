@@ -14,6 +14,7 @@ import {
   networkKpis,
   revenues,
   auditLogs,
+  auditEvents,
   importRuns,
   InsertUser,
   users,
@@ -60,6 +61,7 @@ import {
   syntheticMapSites,
 } from "./synthetic-operations";
 import { isDemoMode } from "./data-mode";
+import { buildSafeAuditEvent, type AuditEventInput } from "./audit-service";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -75,6 +77,30 @@ export async function getDb() {
   }
   return _db;
 }
+
+const previewAuditEvents: ReturnType<typeof buildSafeAuditEvent>[] = [];
+export async function writeAuditEvent(input: AuditEventInput) {
+  const event = buildSafeAuditEvent(input);
+  const db = await getDb();
+  if (db) {
+    await db.insert(auditEvents).values({
+      occurredAt: event.occurredAt,
+      userId: event.userId,
+      action: event.action,
+      resource: event.resource,
+      beforeJson: event.beforeJson,
+      afterJson: event.afterJson,
+      ipAddress: event.ipAddress,
+      result: event.result,
+      isDemo: event.isDemo,
+    });
+  } else {
+    previewAuditEvents.unshift(event);
+    previewAuditEvents.splice(1000);
+  }
+  return event;
+}
+export function listPreviewAuditEvents() { return [...previewAuditEvents]; }
 
 export async function getPersistedDashboardSummary() {
   if (isDemoMode()) return buildSyntheticDashboardSummary();
@@ -266,6 +292,7 @@ export async function getPersistedMapSites() {
       return {
         id: site.siteCode,
         name: site.name,
+        region,
         lat: numberValue(site.latitude),
         lng: numberValue(site.longitude),
         status,

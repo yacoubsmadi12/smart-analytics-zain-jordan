@@ -76,10 +76,10 @@ type NetworkOperations = {
 };
 
 const technologyOptions: Array<{ key: Technology; label: string; color: string }> = [
-  { key: "2G", label: "2G", color: "#94a3b8" },
-  { key: "3G", label: "3G", color: "#f59e0b" },
-  { key: "4G", label: "4G", color: "#38bdf8" },
-  { key: "5G", label: "5G", color: "#a78bfa" },
+  { key: "2G", label: "2G", color: "var(--status-info)" },
+  { key: "3G", label: "3G", color: "var(--status-warning)" },
+  { key: "4G", label: "4G", color: "var(--status-info)" },
+  { key: "5G", label: "5G", color: "var(--status-info)" },
 ];
 
 function formatNumber(value: number) {

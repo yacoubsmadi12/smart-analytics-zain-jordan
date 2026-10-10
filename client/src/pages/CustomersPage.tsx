@@ -47,7 +47,7 @@ export default function CustomersPage() {
       marker.addListener("click", () => setSelectedId(area.id));
       overlays.push(marker as unknown as { setMap: (map: google.maps.Map | null) => void });
       if (nearCongested && area.nearCongestedCell) {
-        const circle = new google.maps.Circle({ map: mapRef.current, center: { lat: area.latitude, lng: area.longitude }, radius: 1000, fillColor: "#ff7184", fillOpacity: 0.08, strokeColor: "#ff7184", strokeOpacity: 0.45, strokeWeight: 1 });
+        const circle = new google.maps.Circle({ map: mapRef.current, center: { lat: area.latitude, lng: area.longitude }, radius: 1000, fillColor: "var(--status-critical)", fillOpacity: 0.08, strokeColor: "var(--status-critical)", strokeOpacity: 0.45, strokeWeight: 1 });
         overlays.push(circle);
       }
     });

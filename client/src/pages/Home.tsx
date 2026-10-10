@@ -1,99 +1,88 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Activity, ArrowUpRight, BarChart3, Bot, Building2, ChevronDown, ChevronRight, Database, Gauge, Globe2, LogOut, MapPin, Menu, MessageSquareWarning, Network, PanelLeftClose, Search, Settings2, ShieldCheck, Signal, Sparkles, Target, Users, Wifi, Zap } from "lucide-react";
+import { ArrowUpRight, Building2, MapPin, MessageSquareWarning, Network, Signal, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { MapView } from "@/components/Map";
+import { formatCompact, formatDateTime, formatJod, formatNumber, formatPercent } from "@/lib/formatters";
+import { AsyncState, ChartFrame, DecisionCard, KpiCard, PageHeader, StatusBadge } from "@/components/analytics";
+import "./Home.css";
 
-const moduleSlugs: Record<string, string> = {
-  "Executive Overview": "executive-overview", "Decision Queue": "priorities", "Network Overview": "network", "Intelligence Map": "intelligence-map", "Sites": "sites", "RF Performance": "rf-performance", Network: "rf-performance", "Customer Experience": "customer-experience", Customers: "customers", Complaints: "complaints", "Infrastructure / Fiber": "infrastructure-fiber", Sales: "sales", Marketing: "marketing", "Business & Revenue": "business-revenue", Priorities: "priorities", "AI Assistant": "ai-assistant", Alerts: "alerts", Reports: "reports", "Data Sources": "data-management", "Data Management": "data-management", "User Management": "user-management", "Roles & Permissions": "user-management", "System Settings": "system-settings", "Audit Logs": "audit-logs",
-};
-const nav = [["Executive Overview", Gauge], ["Intelligence Map", Globe2], ["RF Performance", Signal], ["Network", Signal], ["Customer Experience", Users], ["Customers", Users], ["Complaints", MessageSquareWarning], ["Infrastructure / Fiber", Wifi], ["Sales", Target], ["Marketing", Sparkles], ["Business & Revenue", Building2], ["Priorities", Zap], ["AI Assistant", Bot], ["Alerts", AlertTriangle], ["Reports", BarChart3], ["Data Management", Database], ["User Management", ShieldCheck], ["System Settings", Settings2], ["Audit Logs", Activity]] as const;
-const sidebarGroups = [
-  ["Command Center", ["Executive Overview", "Decision Queue"]],
-  ["Network Intelligence", ["Network Overview", "RF Performance", "Sites", "Infrastructure / Fiber", "Intelligence Map"]],
-  ["Customer Intelligence", ["Customer Experience", "Customers", "Complaints"]],
-  ["Business Intelligence", ["Business & Revenue", "Sales", "Marketing"]],
-  ["AI Intelligence", ["AI Assistant", "AI Insights"]],
-  ["Operations", ["Alerts", "Priorities", "Reports"]],
-  ["Administration", ["Data Sources", "User Management", "Roles & Permissions", "System Settings", "Audit Logs"]],
-] as const;
-
-const navGrant: Record<string, string> = { "Executive Overview": "dashboard.view", "Decision Queue": "dashboard.view", "Network Overview": "network.view", "Sites": "network.view", "AI Insights": "ai.ask", "Data Sources": "data.view", "Roles & Permissions": "users.manage", "Intelligence Map": "map.view", "RF Performance": "network.view", Network: "network.view", "Customer Experience": "complaints.view", Customers: "customers.view", Complaints: "complaints.view", "Infrastructure / Fiber": "infrastructure.view", Sales: "sales.view", Marketing: "marketing.view", "Business & Revenue": "revenue.view", Priorities: "dashboard.view", "AI Assistant": "ai.ask", Alerts: "dashboard.view", Reports: "dashboard.view", "Data Management": "data.view", "User Management": "users.manage", "System Settings": "settings.manage", "Audit Logs": "audit.view" };
-const moduleDescriptions: Record<string, string> = {
-  "RF Performance": "2G/3G/4G/5G radio KPIs, trends and regional correlations.", Network: "Coverage, capacity and live network performance.", "Customer Experience": "CX signals, churn risk and service quality.", Customers: "High-value segments and customer density intelligence.", Complaints: "Hotspots, severity and network correlations.", "Infrastructure / Fiber": "Fiber readiness, backhaul and upgrade planning.", Sales: "Pipeline signals and sales opportunities by area.", Marketing: "Campaign reach, segments and conversion signals.", "Business & Revenue": "Revenue exposure, growth and risk visibility.", Priorities: "The actions with the highest operational impact.", "AI Assistant": "Ask your network data for a decision-ready answer.", Alerts: "Critical changes that need the command center.", Reports: "Turn operating signals into executive reports.", "Data Management": "Connect, validate and govern your source data.",
-};
-type Site = { id: string; name: string; lat: number; lng: number; status: string; revenueRisk: number; customers: number; complaints: number; congestion: number };
-type Metric = { label: string; value: string; note: string; icon: typeof Signal; tone: "good" | "warn" | "neutral" };
-function formatMoney(value: number) { if (!value) return "—"; return value >= 1_000_000 ? `${(value / 1_000_000).toFixed(2)}M JOD` : `${Math.round(value / 1_000)}K JOD`; }
-function formatMetric(value: number | undefined, suffix = "") { return value === undefined || value === null || !Number.isFinite(value) ? "—" : `${value.toLocaleString()}${suffix}`; }
-
-function SidebarNavigation({ sidebar, setSidebar, grants, handleNav }: { sidebar: boolean; setSidebar: (value: boolean) => void; grants: Set<string>; handleNav: (name: string) => void }) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "Command Center": true, "Network Intelligence": true, "Customer Intelligence": true, "Business Intelligence": false, "AI Intelligence": false, Operations: true, Administration: false });
-  return <aside className={`sidebar sidebar-organized ${sidebar ? "open" : "collapsed"}`}><div className="brand"><div className="brand-mark"><span /><span /><span /></div>{sidebar && <div><strong>Smart<span>Analytics</span></strong><small>TELECOM INTELLIGENCE PLATFORM</small></div>}<button className="icon-btn sidebar-toggle" onClick={() => setSidebar(!sidebar)} aria-label="Toggle navigation">{sidebar ? <PanelLeftClose size={17} /> : <Menu size={18} />}</button></div>{sidebar && <div className="sidebar-context"><span className="pulse" /><div><b>Zain Jordan</b><small>Enterprise intelligence workspace</small></div><span className="demo-badge">DEMO DATA</span></div>}<nav className="organized-nav">{sidebarGroups.map(([group, items]) => { const visible = items.filter(name => name === "AI Insights" || grants.has(navGrant[name] || "dashboard.view")); if (!visible.length) return null; const isOpen = openGroups[group]; return <section className="nav-group" key={group}><button className="nav-group-title" onClick={() => setOpenGroups(value => ({ ...value, [group]: !value[group] }))}><span>{group}</span>{isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>{isOpen && <div className="nav-group-items">{visible.map(name => <button className="organized-nav-item" key={name} onClick={() => handleNav(name)} title={name}><span className="nav-item-dot" /><span>{name}</span></button>)}</div>}</section>; })}</nav></aside>;
+function trendLabel(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return undefined;
+  return `${value > 0 ? "+" : ""}${formatPercent(value)} vs previous period`;
 }
-
-function VisualFallbackMap({ sites }: { sites: Site[] }) {
-  const visibleSites = sites.slice(0, 120);
-  const latitudes = visibleSites.map(site => site.lat);
-  const longitudes = visibleSites.map(site => site.lng);
-  const minLat = Math.min(...latitudes, 31.15), maxLat = Math.max(...latitudes, 34.35), minLng = Math.min(...longitudes, 35.55), maxLng = Math.max(...longitudes, 38.65);
-  return <div className="visual-fallback-map"><div className="fallback-region-label">JORDAN · NETWORK COVERAGE</div><div className="fallback-grid-lines" aria-hidden="true" />{visibleSites.map(site => { const left = 8 + ((site.lng - minLng) / Math.max(.01, maxLng - minLng)) * 84; const top = 88 - ((site.lat - minLat) / Math.max(.01, maxLat - minLat)) * 74; return <span key={site.id} className={`fallback-site ${site.status}`} style={{ left: `${left}%`, top: `${top}%` }} title={`${site.id} · ${site.name} · ${site.customers.toLocaleString()} customers`}><i /></span>; })}<div className="fallback-cities"><span>Amman</span><span>Irbid</span><span>Aqaba</span></div></div>;
-}
-
-function CommandMap({ sites }: { sites: Site[] }) {
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
-  const [mapError, setMapError] = useState(false);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    markersRef.current.forEach(marker => marker.setMap(null));
-    markersRef.current = sites.map(site => new google.maps.Marker({ map, position: { lat: site.lat, lng: site.lng }, title: `${site.id} · ${site.name}`, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: site.status === "critical" ? "#f36d76" : site.status === "warning" ? "#f4b84a" : "#4fe0a0", fillOpacity: 1, strokeColor: "#081119", strokeWeight: 2 } }));
-    return () => { markersRef.current.forEach(marker => marker.setMap(null)); markersRef.current = []; };
-  }, [sites]);
-  const center = sites[0] ? { lat: sites[0].lat, lng: sites[0].lng } : { lat: 0, lng: 0 };
-  return <div className="map-canvas command-map"><div className="map-scanline" aria-hidden="true" />{sites.length ? (mapError ? <VisualFallbackMap sites={sites} /> : <MapView className="real-map" initialCenter={center} initialZoom={8} onMapReady={map => { mapRef.current = map; }} onMapError={() => setMapError(true)} />) : <div className="map-empty-canvas"><MapPin size={20} /><b>No source-backed sites available</b><span>Connect or import a Network Sites dataset to populate the map.</span></div>}<div className="map-live-badge"><i className="live-dot" /> {mapError ? "PREVIEW NETWORK MAP" : "SOURCE-BACKED NETWORK MAP"}</div><div className="map-legend"><span><i className="dot healthy" />Healthy</span><span><i className="dot warn" />Warning</span><span><i className="dot critical" />Critical</span></div></div>;
-}
-function MetricCard({ metric }: { metric: Metric }) { const Icon = metric.icon; return <div className={`command-metric ${metric.tone}`}><div><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.note}</small></div><Icon size={18} /></div>; }
-function TrendCard({ label, value, tone, values }: { label: string; value: number | null | undefined; tone: "good" | "risk" | "neutral"; values: number[] }) { const points = values.length ? values.map((item, index) => `${(index / Math.max(1, values.length - 1)) * 100},${34 - item * 18}`).join(" ") : ""; return <article className={`trend-card ${tone}`}><div className="trend-card-head"><span>{label}</span><b>{value === null || value === undefined ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`}</b></div><svg viewBox="0 0 100 38" preserveAspectRatio="none" aria-label={`${label} trend`}><path className="trend-area" d={points ? `M 0 38 L ${points.replaceAll(" ", " L ")} L 100 38 Z` : ""} /><polyline points={points} /></svg><small>{value === null || value === undefined ? "History unavailable" : "vs previous 7 days"}</small></article>; }
 
 export default function Home() {
-  const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [sidebar, setSidebar] = useState(() => typeof window !== "undefined" && window.innerWidth > 760);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [commandQuery, setCommandQuery] = useState("");
-  const accountMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const closeMenu = (event: MouseEvent) => { if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) setAccountMenuOpen(false); };
-    document.addEventListener("mousedown", closeMenu);
-    return () => document.removeEventListener("mousedown", closeMenu);
-  }, []);
-  const permissionsQuery = trpc.auth.permissions.useQuery();
-  const summaryQuery = trpc.dashboard.summary.useQuery();
-  const prioritiesQuery = trpc.dashboard.priorities.useQuery({ limit: 5 });
-  const sitesQuery = trpc.map.sites.useQuery();
-  const alertsQuery = trpc.alerts.operations.useQuery();
-  const grants = new Set(permissionsQuery.data?.grants ?? []);
-  const homeModules = useMemo(() => nav.filter(([name]) => name !== "Executive Overview" && name !== "Intelligence Map" && grants.has(navGrant[name])), [permissionsQuery.data?.grants]);
+  const permissionQuery = trpc.auth.permissions.useQuery();
+  const canViewDashboard = permissionQuery.data?.grants.includes("dashboard.view") ?? false;
+  const canViewCustomers = permissionQuery.data?.grants.includes("customers.view") ?? false;
+  const canViewMap = permissionQuery.data?.grants.includes("map.view") ?? false;
+  const summaryQuery = trpc.dashboard.summary.useQuery(undefined, { enabled: canViewDashboard, refetchOnWindowFocus: false });
+  const prioritiesQuery = trpc.dashboard.priorities.useQuery({ limit: 3 }, { enabled: canViewDashboard, refetchOnWindowFocus: false });
+  const cxQuery = trpc.customerExperience.operations.useQuery(undefined, { enabled: canViewDashboard && canViewCustomers, refetchOnWindowFocus: false });
+
   const summary = summaryQuery.data;
-  const isSynthetic = summary?.source === "synthetic";
-  const sites = (sitesQuery.data ?? []) as Site[];
+  const sourceNote = summary?.source === "synthetic" ? "Demo dataset" : summary?.source === "persisted" ? "Imported source data" : "Awaiting validated data";
   const priorities = prioritiesQuery.data ?? [];
-  const openAlerts = (alertsQuery.data ?? []).filter(alert => alert.status === "open").length;
-  const trend = summary?.trend;
-  const trendValue = (value: number | null | undefined) => value === null || value === undefined ? "Trend unavailable" : `${value >= 0 ? "+" : ""}${value.toFixed(1)}% vs ${trend?.period ?? "7d"}`;
-  const metrics: Metric[] = [
-    { label: "Network Health", value: formatMetric(summary?.networkHealth, "%"), note: summary ? (isSynthetic ? "Synthetic network dataset" : "Source-backed average") : "Awaiting KPI data", icon: Signal, tone: summary ? "good" : "neutral" },
-    { label: "Total Sites", value: formatMetric(summary?.sites), note: summary ? (isSynthetic ? "Synthetic tower inventory" : "From connected sources") : "Awaiting site inventory", icon: Network, tone: summary ? "good" : "neutral" },
-    { label: "Active Customers", value: summary?.customers ? `${(summary.customers / 1_000_000).toFixed(2)}M` : "—", note: summary ? (isSynthetic ? "Synthetic customer dataset" : "Source-backed count") : "Awaiting customer data", icon: Users, tone: summary ? "good" : "neutral" },
-    { label: "Open Complaints", value: formatMetric(summary?.openComplaints), note: summary ? (isSynthetic ? "Synthetic complaint dataset" : "Unresolved source records") : "Awaiting complaint data", icon: MessageSquareWarning, tone: summary ? "warn" : "neutral" },
-    { label: "CX Risk", value: formatMetric(summary?.cxRisk, "%"), note: summary ? (isSynthetic ? "Synthetic CX signals" : "Derived from customer signals") : "Awaiting CX inputs", icon: AlertTriangle, tone: summary ? "warn" : "neutral" },
-    { label: "Revenue at Risk", value: formatMoney(summary?.revenueAtRisk ?? 0), note: summary ? (isSynthetic ? "Synthetic revenue dataset" : "Source-backed revenue data") : "Awaiting revenue data", icon: Building2, tone: summary ? "warn" : "neutral" },
-  ];
-  const handleNav = (name: string) => navigate(`/${moduleSlugs[name]}`);
-  const executiveStatus = summary ? (summary.networkHealth >= 95 ? "STABLE" : summary.networkHealth >= 85 ? "NEEDS ATTENTION" : "CRITICAL") : "AWAITING DATA";
-  const decisionItems = priorities.slice(0, 3);
-  return <div className="app-shell"><div className="platform-grid" aria-hidden="true" /><div className="platform-tower" aria-hidden="true"><span /><i /><b /></div><SidebarNavigation sidebar={sidebar} setSidebar={setSidebar} grants={grants} handleNav={handleNav} /><main className="main-content"><header className="topbar"><button className="mobile-menu" onClick={() => setSidebar(value => !value)}><Menu size={17} /></button><div className="breadcrumbs"><span>Command Center</span><b>/</b><strong>Executive Overview</strong></div><div className="topbar-actions"><label className="global-search"><Search size={14} /><input placeholder="Search operational records" /></label><button className="icon-btn" onClick={() => handleNav("AI Assistant")} aria-label="Open AI Assistant"><Bot size={17} /></button><button className="icon-btn" onClick={() => handleNav("Alerts")} aria-label="Open alerts"><AlertTriangle size={17} /></button><div className="account-menu-wrap" ref={accountMenuRef}><button className="user-chip account-trigger" onClick={() => setAccountMenuOpen(value => !value)} aria-expanded={accountMenuOpen} aria-haspopup="menu"><span>{(user?.name || "A").slice(0, 1).toUpperCase()}</span><div><b>{user?.name || "Administrator"}</b><small>{user?.role === "admin" ? "Administrator" : "Authorized user"}</small></div><span className="account-chevron">⌄</span></button>{accountMenuOpen && <div className="account-menu" role="menu"><div className="account-menu-heading"><span>{(user?.name || "A").slice(0, 1).toUpperCase()}</span><div><b>{user?.name || "Administrator"}</b><small>{user?.email || "Account owner"}</small></div></div><button onClick={() => { setAccountMenuOpen(false); navigate("/account/profile"); }}><Users size={15} /> Edit profile</button><button onClick={() => { setAccountMenuOpen(false); navigate("/account/settings"); }}><Settings2 size={15} /> Account settings</button><div className="account-menu-divider" /><button className="account-signout" onClick={() => void logout()}><LogOut size={15} /> Sign out</button></div>}</div></div></header><section className="executive-command-bar"><div className="command-bar-label"><Sparkles size={16} /><div><b>Intelligence command</b><small>Ask about network, customers or business impact</small></div></div><div className="command-bar-input"><Search size={15} /><input value={commandQuery} onChange={e => setCommandQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && commandQuery.trim()) navigate(`/ai-assistant?q=${encodeURIComponent(commandQuery.trim())}`); }} placeholder="Ask anything about network, customers or business…" /><kbd>Enter</kbd></div><button className="command-bar-action" onClick={() => navigate("/ai-assistant")}><Bot size={14} /> Open AI Assistant</button></section><section className="executive-hero-compact"><div><span className="section-kicker"><i className="live-dot" /> SMARTANALYTICS · TELECOM INTELLIGENCE PLATFORM</span><h1>Executive Overview</h1><p>One decision-ready view of Zain Jordan network performance, customer impact and business exposure.</p></div><div className="demo-status"><span /> {isSynthetic ? "DEMO DATA" : "LIVE DATA"}<small>{isSynthetic ? "Simulated source layer" : "Connected source layer"}</small></div></section><section className="executive-kpis"><article><Signal size={16} /><span>Network Health</span><b>{formatMetric(summary?.networkHealth, "%")}</b><em>+1.8% vs previous 7d</em></article><article><Users size={16} /><span>Customer Experience</span><b>{formatMetric(summary?.openComplaints)}</b><em>+14.2% complaints signal</em></article><article><Building2 size={16} /><span>Business Exposure</span><b>{formatMoney(summary?.revenueAtRisk ?? 0)}</b><em>+4.6% exposure signal</em></article><article className="critical-kpi"><AlertTriangle size={16} /><span>Critical Issues</span><b>{formatMetric(openAlerts)}</b><em>-3 vs previous 7d</em></article><article><Network size={16} /><span>Affected Sites</span><b>{formatMetric(summary?.sites)}</b><em>+8 requiring review</em></article></section><section className="executive-action-grid"><div className="executive-priority-panel"><div className="section-heading"><div><span className="section-kicker">DECISION QUEUE</span><h2>Priority Actions</h2><p>Problem → Impact → Recommendation → Action</p></div><button className="text-btn" onClick={() => handleNav("Priorities")}>View all <ArrowUpRight size={14} /></button></div><div className="priority-action-list">{(priorities.length ? priorities.slice(0, 3) : [{ id: "demo-1", issue: "4G congestion — South", region: "South", impactScore: 94 }, { id: "demo-2", issue: "Customer experience degradation — West", region: "West", impactScore: 78 }, { id: "demo-3", issue: "Capacity risk — East", region: "East", impactScore: 62 }]).map((item, index) => <article key={item.id} className={`priority-action priority-${index}`}><span className="priority-severity">{index === 0 ? "CRITICAL" : index === 1 ? "MAJOR" : "WARNING"}</span><div><h3>{item.issue}</h3><p>{index === 0 ? "Network utilization 94% · 18 affected sites · 42K estimated customers" : index === 1 ? "Complaints +21% · 6 affected areas · churn risk rising" : "Utilization 87% · potential impact medium · capacity review"}</p><strong>Recommendation: {index === 0 ? "Investigate capacity and sector optimization" : index === 1 ? "Analyze customer-impacting cells" : "Review near-term capacity plan"}</strong></div><button onClick={() => handleNav(index === 1 ? "Customer Experience" : index === 2 ? "Network Overview" : "Priorities")}>{index === 0 ? "Investigate" : index === 1 ? "Analyze" : "Review"} <ArrowUpRight size={13} /></button></article>)}</div></div><aside className="system-pulse-compact"><div className="section-heading"><div><span className="section-kicker">SYSTEM PULSE</span><h2>Platform health</h2></div><Gauge size={17} /></div>{[["Network Health", summary?.networkHealth ?? 96.7, "good"], ["Systems Health", 98.2, "good"], ["Data Quality", 99.1, "good"], ["Data Availability", 99.8, "good"]].map(([label, value, tone]) => <div className="pulse-row" key={String(label)}><span><i className={`pulse-indicator ${tone}`} />{label}</span><b>{Number(value).toFixed(1)}%</b><div><i style={{ width: `${Number(value)}%` }} /></div></div>)}</aside></section><section className="executive-impact-grid"><div className="network-impact-panel"><div className="section-heading"><div><span className="section-kicker">NETWORK IMPACT</span><h2>Where the impact is concentrated</h2></div><button className="text-btn" onClick={() => handleNav("Intelligence Map")}>Open map <ArrowUpRight size={14} /></button></div>{["South", "West", "East", "North"].map((region, index) => <div className="impact-row" key={region}><span>{region}</span><i><b className={`impact-${index}`} style={{ width: `${[94, 73, 55, 29][index]}%` }} /></i><strong>{["Critical", "Major", "Warning", "Healthy"][index]}</strong></div>)}</div><div className="changes-panel"><div className="section-heading"><div><span className="section-kicker">TREND WINDOW · 7 DAYS</span><h2>Changes vs previous 7 days</h2></div></div><div className="change-row"><span>Network Health</span><b className="positive">↑ 1.8%</b></div><div className="change-row"><span>Customer Complaints</span><b className="negative">↑ 14.2% ⚠</b></div><div className="change-row"><span>Revenue Exposure</span><b className="negative">↑ 4.6% ⚠</b></div></div></section><section className="ai-insight-compact"><div className="ai-insight-copy"><span className="section-kicker"><Sparkles size={12} /> AI INSIGHT</span><h2>Customer complaints increased by 14.2% over the previous 7 days.</h2><p>Primary drivers: 4G congestion 47% · coverage degradation 31% · Fiber incidents 14%.</p><p><b>Most affected:</b> Aqaba · Ma'an · Tafilah</p></div><div className="ai-recommendation"><span>Recommended action</span><b>Review 4G capacity across 12 affected sites.</b><div><button onClick={() => handleNav("Intelligence Map")}>Open affected sites</button><button onClick={() => handleNav("Reports")}>Generate report</button></div></div></section><section className="explore-intelligence-cta"><div><span className="section-kicker">MODULE DISCOVERY</span><b>Explore Intelligence</b><small>Use the organized sidebar to move across Network, Customer, Business and Administration workspaces.</small></div><button onClick={() => setSidebar(true)}>Open navigation <ArrowUpRight size={14} /></button></section><footer className="command-footer"><span><ShieldCheck size={13} /> All displayed metrics are source-backed, synthetic preview data, or explicitly marked unavailable.</span><button onClick={() => handleNav("Data Management")}>Manage source data <ArrowUpRight size={13} /></button></footer></main></div>;
+  const regions = (cxQuery.data?.areas ?? []).slice(0, 4);
+  const leadingArea = regions[0];
+  const maxRisk = Math.max(1, ...regions.map(area => area.cxRisk));
+
+  if (permissionQuery.data && !canViewDashboard) {
+    return <div className="analytics-page"><PageHeader eyebrow="COMMAND CENTER" title="Executive Overview" description="A source-backed view of network, customer and business signals." /><AsyncState state="forbidden" /></div>;
+  }
+
+  return <div className="analytics-page executive-overview-page">
+    <PageHeader
+      eyebrow="COMMAND CENTER"
+      title="Executive Overview"
+      description="A concise, traceable view from operational signals to customer and revenue impact."
+      status={summary ? { value: summary.source === "synthetic" ? "demo" : "connected", label: summary.source === "synthetic" ? "Demo data" : "Imported data" } : undefined}
+      actions={<>
+        <button type="button" className="executive-action-button" onClick={() => navigate("/decision-support")}><ArrowUpRight size={15} /> Review decisions</button>
+        {canViewMap && <button type="button" className="executive-action-button secondary" onClick={() => navigate("/map")}><MapPin size={15} /> Open map</button>}
+      </>}
+    />
+
+    {permissionQuery.isError && <AsyncState state="error" title="Permissions could not be checked" description="Dashboard data is paused until access can be verified." onRetry={() => void permissionQuery.refetch()} />}
+    {permissionQuery.isLoading && <AsyncState state="loading" title="Checking workspace access" />}
+    {permissionQuery.data && summaryQuery.isError && <AsyncState state="error" title="Dashboard metrics could not be loaded" description="No fallback figures are shown. Retry the source query or review Data Management." onRetry={() => void summaryQuery.refetch()} />}
+
+    <section className="analytics-kpi-grid" aria-label="Executive key performance indicators">
+      <KpiCard label="Network health" value={formatPercent(summary?.networkHealth)} note={sourceNote} delta={trendLabel(summary?.trend.networkHealth)} status={summary ? (summary.networkHealth < 85 ? "critical" : summary.networkHealth < 95 ? "warning" : "healthy") : "neutral"} icon={<Signal size={17} />} />
+      <KpiCard label="Network sites" value={formatNumber(summary?.sites)} note={sourceNote} status="neutral" icon={<Network size={17} />} />
+      <KpiCard label="Active customers" value={formatCompact(summary?.customers, 2)} note={sourceNote} status="neutral" icon={<Users size={17} />} />
+      <KpiCard label="Open complaints" value={formatNumber(summary?.openComplaints)} note="Unresolved records" delta={trendLabel(summary?.trend.openComplaints)} status={summary && summary.openComplaints > 0 ? "warning" : "neutral"} icon={<MessageSquareWarning size={17} />} />
+      <KpiCard label="Revenue at risk" value={formatJod(summary?.revenueAtRisk)} note="JOD · source-backed exposure" delta={trendLabel(summary?.trend.revenueAtRisk)} status={summary && summary.revenueAtRisk > 0 ? "warning" : "neutral"} icon={<Building2 size={17} />} />
+    </section>
+
+    {summary?.updatedAt && <div className="executive-data-meta"><span><StatusBadge status={summary.source === "synthetic" ? "demo" : "connected"} label={sourceNote} /></span><span>Updated {formatDateTime(summary.updatedAt)} · Asia/Amman</span></div>}
+
+    <section className="executive-overview-main" aria-label="Regional customer impact and operational insight">
+      <ChartFrame title="Regional impact" description="Customer-experience risk by service area; sourced from the shared CX metrics service." unit="Risk / 100"
+        state={permissionQuery.data && !canViewCustomers ? undefined : cxQuery.isLoading ? "loading" : cxQuery.isError ? "error" : regions.length ? undefined : "empty"}
+        onRetry={() => void cxQuery.refetch()}>
+        {permissionQuery.data && !canViewCustomers ? <AsyncState state="forbidden" title="Regional CX signals are restricted" description="Your role does not include customers.view." /> : regions.length > 0 && <div className="executive-region-chart" role="list" aria-label="Top four regions by customer experience risk">
+          {regions.map(area => <div className="executive-region-row" role="listitem" key={area.id}>
+            <div className="executive-region-label"><span title={area.region}>{area.region}</span><StatusBadge status={area.severity} label={area.severity === "watch" ? "Watch" : area.severity} /></div>
+            <div className="executive-region-track" role="meter" aria-label={`${area.region} CX risk`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={area.cxRisk}><i className={`risk-${area.severity}`} style={{ width: `${Math.min(100, Math.max(3, area.cxRisk / maxRisk * 100))}%` }} /></div>
+            <div className="executive-region-metrics"><b>{formatNumber(area.cxRisk)}</b><span>{formatNumber(area.complaints)} open complaints</span><span>{formatCompact(area.impactedCustomers, 1)} impacted customers</span></div>
+          </div>)}
+        </div>}
+      </ChartFrame>
+
+      <aside className="executive-insight-panel" aria-labelledby="executive-insight-title">
+        <div className="executive-insight-heading"><span>OPERATIONAL INSIGHT</span><StatusBadge status={cxQuery.data?.source === "synthetic" ? "demo" : "info"} label={cxQuery.data?.source === "synthetic" ? "Demo data" : "Metric-derived"} /></div>
+        {permissionQuery.data && !canViewCustomers ? <AsyncState state="forbidden" title="Customer insight is restricted" description="No customer-area metrics were requested for this role." /> : cxQuery.isLoading ? <AsyncState state="loading" title="Preparing source-backed insight" /> : cxQuery.isError ? <AsyncState state="error" title="Insight unavailable" onRetry={() => void cxQuery.refetch()} /> : leadingArea ? <>
+          <h2 id="executive-insight-title">{leadingArea.primaryIssue}</h2>
+          <p>{leadingArea.region}: {formatNumber(leadingArea.impactedCustomers)} customers are estimated to be impacted; risk is {formatNumber(leadingArea.cxRisk)} / 100.</p>
+          <div className="executive-insight-action"><span>Next step</span><b>Review the ranked decision queue and validate the affected service area.</b><button type="button" onClick={() => navigate("/decision-support")}>Open decisions <ArrowUpRight size={14} /></button></div>
+        </> : <AsyncState state="empty" title="No CX insight available" description="No source-backed service-area signals are available for the current dataset." />}
+      </aside>
+    </section>
+
+    <section className="executive-decisions-section" aria-labelledby="executive-decisions-title">
+      <div className="executive-section-title"><div><span className="analytics-eyebrow">DECISION QUEUE</span><h2 id="executive-decisions-title">Top 3 recommended actions</h2><p>Ranked using the configured impact score. Each card retains its source rationale and impact measures.</p></div><button type="button" className="executive-text-link" onClick={() => navigate("/decision-support")}>View queue <ArrowUpRight size={14} /></button></div>
+      {prioritiesQuery.isLoading ? <AsyncState state="loading" title="Loading ranked decisions" /> : prioritiesQuery.isError ? <AsyncState state="error" title="Decision queue is unavailable" onRetry={() => void prioritiesQuery.refetch()} /> : priorities.length ? <div className="analytics-decision-list">{priorities.map(item => <DecisionCard key={item.id} rank={item.rank} title={item.issue} region={item.region} severity={item.severity} rationale={item.rationale} recommendation={item.action} affectedCustomers={item.affectedCustomers} revenueRisk={item.revenueRisk} salesPipeline={item.salesPipeline} complaintCount={item.complaintCount} onOpen={() => navigate("/decision-support")} />)}</div> : <AsyncState state="empty" title="No ranked decisions" description="The current dataset does not contain actionable priority records." />}
+    </section>
+  </div>;
 }

@@ -1,0 +1,208 @@
+/* Zain Jordan-inspired visual layer: charcoal canvas, black panels, violet/magenta accents. */
+html, body, #root { min-height: 100%; }
+body {
+  background: #29282b !important;
+  background-image: radial-gradient(ellipse at 82% 0%, rgba(151, 71, 181, .12), transparent 34%), linear-gradient(180deg, #303033, #262629 72%) !important;
+  background-attachment: fixed;
+}
+.platform-shell { min-height: 100vh; background: transparent !important; color: var(--text-primary); }
+.platform-shell::before {
+  opacity: .1;
+  background-image: linear-gradient(rgba(190, 111, 213, .11) 1px, transparent 1px), linear-gradient(90deg, rgba(190, 111, 213, .11) 1px, transparent 1px);
+}
+.platform-sidebar {
+  background: linear-gradient(180deg, #080809 0%, #050506 100%) !important;
+  border-color: #3b383d !important;
+  box-shadow: 8px 0 26px rgba(0, 0, 0, .24) !important;
+}
+.platform-brand { gap: 8px; border-color: #302d32 !important; }
+.platform-brand-mark { border-color: rgba(181, 75, 224, .62) !important; background: rgba(181, 75, 224, .08); box-shadow: 0 0 14px rgba(181, 75, 224, .15) !important; }
+.platform-brand-mark i { background: linear-gradient(180deg, var(--chart-1), var(--chart-3)) !important; }
+.platform-brand b span { color: var(--accent) !important; }
+.platform-brand small { color: #9e95a2 !important; letter-spacing: .1em; }
+.platform-brand-zain, .network-login-zain-logo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  border: 1px solid rgba(255, 255, 255, .72);
+  border-radius: 5px;
+  background: #fff;
+  line-height: 0;
+}
+.platform-brand-zain { margin-inline-start: auto; }
+.platform-brand-zain img { display: block; width: 43px; height: auto; }
+.platform-tenant { background: #121113 !important; border-color: #343137 !important; }
+.tenant-pulse, .platform-online-dot { background: var(--chart-1) !important; box-shadow: 0 0 9px rgba(181, 75, 224, .46) !important; }
+.platform-tenant > span:last-child { color: #d08bea !important; border-color: rgba(181, 75, 224, .38) !important; background: rgba(181, 75, 224, .1) !important; }
+.platform-sidebar-footer { border-color: #302d32 !important; }
+.platform-nav-item { color: #c7c0ca !important; }
+.platform-nav-item:hover { background: rgba(181, 75, 224, .12) !important; color: #f0d8f8 !important; }
+.platform-nav-item.active {
+  border-color: rgba(181, 75, 224, .36) !important;
+  border-inline-start: 3px solid var(--accent) !important;
+  background: linear-gradient(100deg, rgba(147, 50, 177, .38), rgba(82, 44, 102, .18)) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 18px rgba(181, 75, 224, .08), 0 5px 16px rgba(0, 0, 0, .18) !important;
+}
+.platform-nav-item.active svg { color: #d28beb !important; }
+.platform-nav-section { border-color: #302d32 !important; color: #a9a0ad !important; }
+.platform-topbar {
+  background: rgba(30, 29, 31, .94) !important;
+  border-color: #3b383d !important;
+  backdrop-filter: blur(16px);
+}
+.platform-search, .platform-icon-button {
+  border-color: #48434b !important;
+  background: rgba(10, 10, 11, .72) !important;
+}
+.platform-search:focus-within, .platform-icon-button:hover { border-color: var(--accent) !important; box-shadow: 0 0 14px rgba(181, 75, 224, .16) !important; }
+.platform-icon-button:hover { color: #edc9f6 !important; }
+.platform-avatar { background: linear-gradient(140deg, rgba(181, 75, 224, .28), rgba(101, 89, 232, .2)) !important; color: #e6c2f3 !important; border-color: rgba(181, 75, 224, .4) !important; }
+.platform-account-menu { background: #100f11 !important; border-color: #48414c !important; }
+.platform-page-tabs { border-color: #454047 !important; }
+.platform-page-tabs button.active { color: #e4b1f2 !important; border-color: var(--accent) !important; text-shadow: 0 0 12px rgba(181, 75, 224, .22) !important; }
+.platform-shell-content { background: transparent; }
+.consolidated-workspace-heading h1 { color: var(--text-primary) !important; text-shadow: none !important; }
+.consolidated-workspace-heading .section-kicker { color: #ce79e8 !important; }
+
+/* Shared black surfaces across workspaces. Keep severity/status colors semantic. */
+.platform-shell-content :is(
+  .analytics-kpi-card, .analytics-chart-frame, .analytics-table-shell, .analytics-filter-bar,
+  .analytics-decision-card, .role-permissions-panel, .command-metric, .executive-story,
+  .module-card, .panel, .kpi-card, .priority-card, .report-card, .alert-card,
+  .results-card, .chart-card, .chart-panel, .metric-card, .map-panel, .map-sidebar,
+  .section-card, .content-card, .dashboard-panel, .decision-card, .action-card
+) {
+  border-color: rgba(204, 190, 208, .2) !important;
+  background-color: #070708 !important;
+  background-image: linear-gradient(145deg, rgba(120, 63, 140, .08), rgba(6, 6, 7, .98)) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .28) !important;
+}
+.platform-shell-content :is(.analytics-chart-header, .analytics-table-toolbar, .analytics-table-pagination, .analytics-data-table td) { border-color: rgba(205, 191, 210, .16) !important; }
+.platform-shell-content :is(.analytics-data-table thead, .analytics-data-table tbody tr:hover) { background-color: #171518 !important; }
+.platform-shell-content :is(.analytics-data-table tbody tr:hover, .analytics-kpi-card:hover, .analytics-decision-card:hover, .module-card:hover, .results-card:hover) { border-color: rgba(181, 75, 224, .48) !important; }
+.platform-shell-content :is(.analytics-kpi-icon, .analytics-recommendation b, .module-kicker, .section-kicker, .panel-eyebrow) { color: #d183e9 !important; }
+.platform-shell-content :is(.analytics-retry-button, .analytics-table-toolbar button, .analytics-table-pagination button, .analytics-decision-open) {
+  border-color: #4a414d !important;
+  background: linear-gradient(135deg, #171419, #0c0b0d) !important;
+  color: var(--text-primary) !important;
+}
+.platform-shell-content :is(.analytics-retry-button:hover, .analytics-table-toolbar button:hover, .analytics-table-pagination button:not(:disabled):hover, .analytics-decision-open:hover) { border-color: var(--accent) !important; box-shadow: 0 0 15px rgba(181, 75, 224, .14) !important; }
+.platform-shell-content :is(input, select, textarea) { border-color: #48414b !important; background-color: #0c0b0d !important; color: var(--text-primary) !important; }
+.platform-shell-content :is(input, select, textarea):focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(181, 75, 224, .14) !important; }
+.platform-shell-content :is(.primary-btn, .decision-cta, .btn-primary, button[data-variant="default"]) {
+  border-color: rgba(217, 152, 237, .5) !important;
+  background: linear-gradient(115deg, var(--action-primary-start), var(--action-primary-mid) 52%, var(--action-primary-end)) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 18px rgba(113, 42, 145, .24) !important;
+}
+.platform-shell-content :is(.primary-btn, .decision-cta, .btn-primary, button[data-variant="default"]):hover { filter: brightness(1.1); box-shadow: 0 7px 22px rgba(134, 45, 168, .3) !important; }
+.platform-shell-content :is(button.active, [aria-selected="true"], [data-state="active"]) {
+  border-color: rgba(181, 75, 224, .7) !important;
+  background: linear-gradient(125deg, rgba(147, 50, 177, .34), rgba(95, 62, 145, .2)) !important;
+  color: #f3d8fa !important;
+  box-shadow: inset 0 0 12px rgba(181, 75, 224, .08), 0 0 12px rgba(181, 75, 224, .1) !important;
+}
+.platform-shell-content .visual-fallback-map, .platform-shell-content .map-empty-canvas { background-color: #151416 !important; }
+.platform-shell-content .map-live-badge { border-color: rgba(181, 75, 224, .45) !important; background: rgba(10, 8, 12, .9) !important; color: #dc9eed !important; box-shadow: 0 0 16px rgba(181, 75, 224, .12) !important; }
+.platform-shell-content .priorities-page .priority-list > button.priority-card { background: linear-gradient(145deg, #111013, #070708) !important; }
+.platform-shell-content .priorities-page .priority-card-title b { color: #d287e8 !important; }
+.platform-shell-content .priorities-page .priority-card-footer strong { border-color: rgba(181, 75, 224, .42) !important; background: rgba(146, 49, 177, .18) !important; color: #e0b1ef !important; }
+.platform-shell-content .priorities-page .priority-card .priority-severity-badge.medium { border-color: color-mix(in srgb, var(--chart-1) 55%, transparent) !important; background: color-mix(in srgb, var(--chart-1) 14%, transparent) !important; color: #e0a4f2 !important; }
+.platform-shell-content .priorities-page .priority-card.selected { border-color: var(--accent) !important; box-shadow: 0 0 0 1px rgba(181, 75, 224, .22), var(--shadow-1) !important; }
+.platform-shell-content :is(.role-insight, .ai-insight-compact, .executive-decision-bar, .data-mode-switcher, .executive-detail .priority-action) {
+  border-color: rgba(181, 75, 224, .3) !important;
+  background: linear-gradient(125deg, rgba(41, 24, 48, .98), rgba(13, 11, 15, .98)) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-1) !important;
+}
+.platform-shell-content :is(.module-card:hover) { background: linear-gradient(125deg, rgba(112, 44, 145, .24), rgba(10, 9, 11, .98)) !important; }
+.platform-shell-content :is(.module-card-icon, .executive-story .story-icon) { border-color: rgba(181, 75, 224, .42) !important; background: rgba(136, 49, 177, .17) !important; color: #d694eb !important; }
+
+/* Charts use a coordinated violet/magenta family; red/amber/green remain status colors. */
+.recharts-cartesian-grid line { stroke: var(--chart-grid) !important; }
+.recharts-cartesian-axis line, .recharts-cartesian-axis-tick line { stroke: rgba(220, 208, 224, .24) !important; }
+.recharts-cartesian-axis-tick-value, .recharts-text { fill: #c9c0cc !important; }
+.recharts-default-tooltip { border: 1px solid rgba(181, 75, 224, .4) !important; border-radius: 8px !important; background: #0d0c0e !important; color: var(--text-primary) !important; }
+.recharts-legend-item-text { color: #d4ccd7 !important; }
+
+/* Login: preserve the existing form and auth flow, restyle only the visual layer. */
+.network-login {
+  color: var(--text-primary) !important;
+  background: #171619 !important;
+  background-image: radial-gradient(ellipse at 72% 46%, rgba(143, 52, 175, .2), transparent 42%), radial-gradient(ellipse at 18% 80%, rgba(102, 67, 170, .12), transparent 36%), linear-gradient(135deg, #282629, #121113 68%) !important;
+}
+.network-login::before { opacity: .25 !important; background-image: linear-gradient(rgba(187, 115, 205, .11) 1px, transparent 1px), linear-gradient(90deg, rgba(187, 115, 205, .11) 1px, transparent 1px) !important; }
+.network-login-visual { border-color: rgba(196, 132, 212, .2) !important; background: linear-gradient(120deg, rgba(27, 24, 29, .64), rgba(15, 14, 16, .18)) !important; }
+.network-login-grid { background: radial-gradient(circle at 70% 50%, rgba(175, 73, 204, .18), transparent 36%) !important; }
+.network-login-brand strong { color: #fff !important; }
+.network-login-brand strong span { color: #d28bea !important; }
+.network-login-brand small { color: #b1a6b6 !important; }
+.network-login-zain-logo { padding: 5px 7px; border-radius: 6px; }
+.network-login-zain-logo img { display: block; width: 66px; height: auto; }
+.network-login-roles, .network-login-copy p { color: #c7becb !important; }
+.network-login-roles i, .network-login-eyebrow i { background: var(--chart-1) !important; box-shadow: 0 0 10px rgba(181, 75, 224, .45) !important; }
+.network-login-eyebrow { color: #d1c4d7 !important; }
+.network-login-copy h1 { color: #fff !important; }
+.network-login-copy h1 em { background: linear-gradient(100deg, #d16ce5, #a94ad5 54%, #8265dc) !important; background-clip: text !important; -webkit-background-clip: text !important; filter: drop-shadow(0 0 14px rgba(180, 78, 207, .22)) !important; }
+.network-login-links { stroke-width: 1.2; opacity: .72; }
+.network-login-nodes circle { fill: #ca60e7 !important; }
+.network-login-nodes .network-login-core { fill: url(#network-core) !important; stroke: #e5b1f0 !important; }
+.network-login-orbit { border-color: rgba(190, 84, 219, .34) !important; box-shadow: 0 0 32px rgba(147, 54, 176, .14), inset 0 0 28px rgba(147, 54, 176, .08) !important; }
+.network-login-orbit-two { border-color: rgba(126, 97, 218, .3) !important; }
+.network-login-diagram-tag { border-color: rgba(186, 96, 212, .38) !important; background: rgba(13, 10, 15, .82) !important; color: #e4c2ed !important; box-shadow: 0 0 18px rgba(138, 48, 166, .14) !important; }
+.network-login-domain { border-color: rgba(190, 130, 206, .23) !important; background: linear-gradient(110deg, rgba(39, 29, 43, .86), rgba(17, 15, 19, .88)) !important; }
+.network-login-domain b { color: #f3edf5 !important; }
+.network-login-domain small { color: #b6abbc !important; }
+.network-login-domain > svg { color: #d58be8 !important; }
+.network-login-domain-icon { border-color: rgba(181, 75, 224, .42) !important; background: rgba(145, 58, 170, .15) !important; }
+.network-login-domain-icon::before, .network-login-domain-icon::after { background: #ca69e4 !important; box-shadow: 0 0 8px rgba(181, 75, 224, .55) !important; }
+.network-login-domain-icon i { background: #8970e4 !important; }
+.network-login-footer { color: #a99dae !important; }
+.network-login-access { background: linear-gradient(145deg, rgba(19, 17, 20, .35), rgba(10, 9, 11, .86)) !important; }
+.network-login-card { border-color: rgba(192, 111, 214, .34) !important; background: linear-gradient(145deg, rgba(22, 19, 24, .97), rgba(9, 8, 10, .98)) !important; box-shadow: 0 0 0 1px rgba(181, 75, 224, .05), 0 28px 80px rgba(0, 0, 0, .46), 0 0 38px rgba(124, 42, 151, .13) !important; }
+.network-login-card::before { background: linear-gradient(90deg, transparent, #cc64e2, #875fdb, transparent) !important; box-shadow: 0 0 14px rgba(181, 75, 224, .52) !important; }
+.network-login-card-logo { color: #cec0d3 !important; }
+.network-login-secure { color: #dcace9 !important; }
+.network-login-welcome h2 { color: #fff !important; }
+.network-login-welcome p, .network-login-card form label { color: #d0c5d5 !important; }
+.network-login-input { border-color: rgba(181, 75, 224, .32) !important; background: rgba(7, 6, 8, .82) !important; color: #d68de9 !important; }
+.network-login-input:focus-within { border-color: #c25be0 !important; background: #0c090e !important; box-shadow: 0 0 0 3px rgba(181, 75, 224, .14), 0 0 18px rgba(125, 47, 152, .12) !important; }
+.network-login-input input { color: #f7f4f8 !important; }
+.network-login-input input::placeholder { color: #918599 !important; }
+.network-login-submit { border-color: rgba(223, 162, 239, .5) !important; background: linear-gradient(105deg, #ad45d2, #8d37c3 55%, #6845bd) !important; color: #fff !important; box-shadow: 0 0 22px rgba(134, 44, 160, .26) !important; }
+.network-login-submit:hover:not(:disabled) { box-shadow: 0 0 28px rgba(153, 52, 179, .34) !important; }
+.network-login-security { color: #c2b6c7 !important; }
+.network-login-security svg, .network-login-privacy svg { color: #d28be7 !important; }
+.network-login-privacy { border-color: rgba(181, 75, 224, .18) !important; color: #a99dad !important; }
+.network-login-legal { color: #9b909f !important; }
+.network-login .smart-mark { border-color: rgba(194, 103, 220, .62) !important; background: linear-gradient(145deg, rgba(128, 49, 157, .72), rgba(28, 18, 34, .92)) !important; box-shadow: 0 0 14px rgba(152, 56, 178, .16) !important; }
+.network-login .smart-core, .network-login .smart-node { background: #d27ce8 !important; box-shadow: 0 0 9px rgba(181, 75, 224, .48) !important; }
+.network-login .smart-orbit { border-color: rgba(202, 113, 226, .7) !important; }
+.network-login .orbit-two, .network-login .node-three { border-color: rgba(139, 110, 223, .68) !important; background: #9a7ce5 !important; }
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .platform-brand-mark { display: none; }
+  .platform-brand { justify-content: center; padding-inline: 8px !important; }
+  .platform-brand-zain { margin-inline: auto; }
+  .platform-brand-zain img { width: 48px; }
+}
+@media (max-width: 767px) {
+  .platform-brand-zain img { width: 55px; }
+  .network-login-visual { border-bottom-color: rgba(196, 132, 212, .2) !important; }
+  .network-login-zain-logo img { width: 58px; }
+}
+
+@media (min-width: 761px) and (max-width: 900px) {
+  .network-login { grid-template-columns: 1fr !important; min-height: 100svh; overflow: visible !important; }
+  .network-login-visual { min-height: 470px; padding: 24px 32px 20px; border-inline-end: 0 !important; border-bottom: 1px solid rgba(196, 132, 212, .2) !important; }
+  .network-login-roles { display: none !important; }
+  .network-login-copy { width: min(54%, 440px); margin-top: 52px; }
+  .network-login-copy h1 { font-size: 48px; }
+  .network-login-diagram { top: 17%; right: 0; width: 54%; height: 52%; min-height: 260px; opacity: .48; }
+  .network-login-domains { width: min(100%, 600px); }
+  .network-login-access { padding: 34px 24px; }
+  .network-login-card { width: min(100%, 460px); }
+}

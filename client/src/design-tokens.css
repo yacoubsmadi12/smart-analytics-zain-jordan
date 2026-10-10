@@ -1,0 +1,67 @@
+/* Central visual tokens: Zain Jordan-inspired charcoal, black and violet. */
+:root {
+  color-scheme: dark;
+  --color-bg: #29282b;
+  --surface-1: #080809;
+  --surface-2: #111012;
+  --surface-3: #1b171e;
+  --surface-overlay: #0c0b0e;
+  --electric-blue: #7451c9;
+  --electric-blue-strong: #7e35bd;
+  --electric-cyan: #b54be0;
+  --electric-violet: #8d4ed0;
+  --action-primary-start: #a43cd5;
+  --action-primary-mid: #8533c8;
+  --action-primary-end: #653fbd;
+  --border-default: rgba(211, 190, 219, 0.2);
+  --border-strong: rgba(190, 88, 228, 0.55);
+  --accent: var(--electric-cyan);
+  --accent-hover: #e0adf4;
+  --status-critical: #fb7185;
+  --status-warning: #f6bd60;
+  --status-healthy: #4ade80;
+  --status-info: #a58af5;
+  --chart-1: #b74ce5;
+  --chart-2: #d158c5;
+  --chart-3: #7750d7;
+  --chart-4: #c17ce0;
+  --chart-5: #6559e8;
+  --chart-6: #ea8dc2;
+  --chart-grid: rgba(255, 255, 255, 0.14);
+  --text-primary: #f7f4f8;
+  --text-secondary: #d0c8d2;
+  --text-muted: #9b929f;
+  --font-sans: Manrope, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-arabic: "Noto Sans Arabic", "Noto Naskh Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  --text-page-title: 28px;
+  --text-section-title: 18px;
+  --text-card-title: 15px;
+  --text-body: 14px;
+  --text-caption: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-1: 0 0 0 1px rgba(181, 75, 224, 0.04), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-2: 0 0 0 1px rgba(181, 75, 224, 0.12), 0 16px 40px rgba(0, 0, 0, 0.5);
+  --motion-fast: 170ms;
+  --focus-ring: 0 0 0 3px rgba(181, 75, 224, 0.4);
+}
+
+html { font-family: var(--font-sans); font-size: 16px; }
+body { font-family: var(--font-sans); color: var(--text-primary); background: var(--color-bg); font-size: var(--text-body); }
+:lang(ar) { font-family: var(--font-arabic); }
+:where(button, input, select, textarea) { font: inherit; }
+:where([data-numeric], .numeric, .metric-value, .kpi-value) { font-variant-numeric: tabular-nums; }
+:where(code, pre, .data-code, .entity-id) { font-family: var(--font-mono); }
+:where(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; box-shadow: var(--focus-ring); }
+:where(button, a, input, select, textarea) { transition-duration: var(--motion-fast); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

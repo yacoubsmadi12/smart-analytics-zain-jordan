@@ -40,3 +40,14 @@ export function formatNumber(
     maximumFractionDigits: digits,
   });
 }
+
+export function formatDateTime(value: Date | string | number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-JO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Amman",
+  }).format(date);
+}
